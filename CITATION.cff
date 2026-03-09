@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Global Semantic Structure of Spirituality"
+abstract: >
+  A computational linguistics and network analysis project that maps the
+  semantic relationships and global structure of spiritual concepts across
+  multiple religious and cultural traditions, using R-based tools including
+  word embeddings, semantic network analysis, and clustering techniques.
+authors:
+  - family-names: "PSI"
+    given-names: "Alexandre"
+    orcid: ""
+    email: ""
+repository-code: "https://github.com/alexandrepsi/spirituality-semantic-analysis"
+url: "https://github.com/alexandrepsi/spirituality-semantic-analysis"
+license: MIT
+version: "1.0.0"
+date-released: "2026-03-01"
+keywords:
+  - spirituality
+  - semantic analysis
+  - network analysis
+  - word embeddings
+  - computational linguistics
+  - religion
+  - R
+references:
+  - type: book
+    authors:
+      - family-names: "Boyer"
+        given-names: "Pascal"
+    title: "Religion Explained: The Evolutionary Origins of Religious Thought"
+    year: 2001
+    publisher:
+      name: "Basic Books"
+  - type: book
+    authors:
+      - family-names: "Huxley"
+        given-names: "Aldous"
+    title: "The Perennial Philosophy"
+    year: 1945
+    publisher:
+      name: "Harper & Brothers"

@@ -1,0 +1,17 @@
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Generated figures (reproducible from analysis scripts)
+figures/*.png
+figures/*.pdf
+
+# Generated RDS/CSV outputs (reproducible from scripts)
+data/semantic_network.rds
+data/centrality_measures.csv
+
+# OS artifacts
+.DS_Store
+Thumbs.db

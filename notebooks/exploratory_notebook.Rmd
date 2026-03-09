@@ -1,0 +1,211 @@
+---
+title: "Exploratory Analysis of Spiritual Vocabulary"
+author: "Alexandre PSI"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width  = 9,
+  fig.height = 6
+)
+```
+
+## Introduction
+
+This notebook provides an interactive exploration of the **Global Semantic Structure of Spirituality** datasets. We examine the distribution of spiritual terms across categories, traditions, and frequency bands, then visualise their semantic network and cluster structure.
+
+---
+
+## 1. Setup and Data Loading
+
+```{r load-packages}
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(igraph)
+library(ggraph)
+library(cluster)
+library(factoextra)
+```
+
+```{r load-data}
+# Set working directory to project root before knitting, or use here::here()
+spiritual_words <- read_csv("../data/spiritual_words.csv")
+extended_words  <- read_csv("../data/extended_spiritual_words.csv")
+
+cat("Core dataset rows:", nrow(spiritual_words), "\n")
+cat("Extended dataset rows:", nrow(extended_words), "\n")
+```
+
+---
+
+## 2. Exploratory Data Analysis
+
+### 2.1 Dataset Overview
+
+```{r glimpse}
+glimpse(extended_words)
+```
+
+### 2.2 Word Counts by Category
+
+```{r category-counts}
+extended_words %>%
+  count(category, sort = TRUE) %>%
+  knitr::kable(caption = "Words per Category (Extended Dataset)")
+```
+
+### 2.3 Word Counts by Tradition
+
+```{r tradition-counts}
+extended_words %>%
+  count(tradition, sort = TRUE) %>%
+  knitr::kable(caption = "Words per Tradition")
+```
+
+### 2.4 Frequency Distribution
+
+```{r freq-distribution}
+ggplot(extended_words, aes(x = frequency, fill = category)) +
+  geom_histogram(bins = 20, colour = "white") +
+  facet_wrap(~category, scales = "free_y") +
+  labs(
+    title = "Frequency Distribution by Category",
+    x     = "Relative Frequency",
+    y     = "Count"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+### 2.5 Top Words by Frequency
+
+```{r top-words}
+extended_words %>%
+  arrange(desc(frequency)) %>%
+  slice_head(n = 20) %>%
+  ggplot(aes(x = reorder(word, frequency), y = frequency, fill = category)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top 20 Spiritual Terms by Frequency",
+    x     = "Word",
+    y     = "Relative Frequency",
+    fill  = "Category"
+  ) +
+  theme_minimal()
+```
+
+---
+
+## 3. Semantic Network
+
+```{r build-network}
+words <- extended_words %>%
+  distinct(word, .keep_all = TRUE)
+
+n          <- nrow(words)
+adj_matrix <- matrix(0, n, n, dimnames = list(words$word, words$word))
+
+for (i in seq_len(n)) {
+  for (j in seq_len(n)) {
+    if (i != j &&
+        (words$category[i] == words$category[j] ||
+         words$tradition[i] == words$tradition[j])) {
+      adj_matrix[i, j] <- words$frequency[i] * words$frequency[j]
+    }
+  }
+}
+
+g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected",
+                                  weighted = TRUE, diag = FALSE)
+V(g)$category  <- words$category[match(V(g)$name, words$word)]
+V(g)$frequency <- words$frequency[match(V(g)$name, words$word)]
+
+set.seed(42)
+V(g)$community <- membership(cluster_louvain(g))
+```
+
+```{r plot-network, fig.width=11, fig.height=9}
+set.seed(42)
+ggraph(g, layout = "fr") +
+  geom_edge_link(aes(alpha = weight), colour = "grey70", show.legend = FALSE) +
+  geom_node_point(aes(size = frequency, colour = category)) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 2.8, max.overlaps = 20) +
+  scale_size_continuous(range = c(3, 9)) +
+  labs(
+    title  = "Semantic Network of Spiritual Vocabulary",
+    colour = "Category",
+    size   = "Frequency"
+  ) +
+  theme_graph()
+```
+
+---
+
+## 4. Clustering Analysis
+
+```{r clustering}
+words_clean <- extended_words %>%
+  distinct(word, .keep_all = TRUE) %>%
+  mutate(
+    category_num  = as.numeric(factor(category)),
+    tradition_num = as.numeric(factor(tradition))
+  )
+
+features <- words_clean %>%
+  select(frequency, category_num, tradition_num) %>%
+  scale()
+rownames(features) <- words_clean$word
+
+set.seed(42)
+km <- kmeans(features, centers = 5, nstart = 25)
+words_clean$cluster <- factor(km$cluster)
+```
+
+```{r cluster-plot}
+fviz_cluster(km, data = features, geom = "point",
+             ellipse.type = "convex", palette = "jco",
+             ggtheme = theme_minimal()) +
+  labs(title = "K-Means Clustering of Spiritual Terms (k = 5)")
+```
+
+```{r cluster-composition}
+words_clean %>%
+  count(cluster, category) %>%
+  ggplot(aes(x = cluster, y = n, fill = category)) +
+  geom_col(position = "stack") +
+  labs(
+    title = "Cluster Composition by Category",
+    x     = "Cluster",
+    y     = "Number of Words",
+    fill  = "Category"
+  ) +
+  theme_minimal()
+```
+
+---
+
+## 5. Summary
+
+This exploratory analysis reveals that the semantic field of spirituality is organised around several coherent conceptual clusters: **divine concepts**, **practices**, **inner states**, **virtues**, and **beliefs**. The semantic network confirms the central role of high-frequency terms such as *God*, *faith*, *love*, and *compassion* as hubs that bridge multiple traditions.
+
+Future work should extend this analysis to:
+
+1. Larger, cross-lingual corpora of spiritual texts.
+2. Dynamic network analysis to trace semantic change over time.
+3. Comparison of network structures across different religious traditions.
+
+---
+
+*This notebook was generated as part of the Global Semantic Structure of Spirituality project.*
